@@ -20,29 +20,31 @@
 
 package org.graylog2.buffers.processors;
 
-import com.google.common.collect.Lists;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import org.graylog2.Core;
+import org.graylog2.buffers.LogMessageEvent;
+import org.graylog2.buffers.OutputBuffer;
+import org.graylog2.plugin.buffers.BufferOutOfCapacityException;
+import org.graylog2.plugin.filters.MessageFilter;
+import org.graylog2.plugin.logmessage.LogMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.lmax.disruptor.EventHandler;
 import com.yammer.metrics.Metrics;
 import com.yammer.metrics.core.Meter;
 import com.yammer.metrics.core.Timer;
 import com.yammer.metrics.core.TimerContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.graylog2.Core;
-import org.graylog2.buffers.LogMessageEvent;
-import org.graylog2.buffers.OutputBuffer;
-import org.graylog2.plugin.filters.MessageFilter;
-import org.graylog2.plugin.logmessage.LogMessage;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import org.graylog2.plugin.buffers.BufferOutOfCapacityException;
 
 /**
  * @author Lennart Koopmann <lennart@socketfeed.com>
  */
 public class ProcessBufferProcessor implements EventHandler<LogMessageEvent> {
+
+    private static final int BUFFER_FLUSH_PERIOD = 5000;
 
     private static final Logger LOG = LoggerFactory.getLogger(ProcessBufferProcessor.class);
 
@@ -56,6 +58,7 @@ public class ProcessBufferProcessor implements EventHandler<LogMessageEvent> {
     private final long ordinal;
     private final long numberOfConsumers;
     private List<LogMessage> buffer;
+    private long  lastBufferFlushMillis;
 
     private final int bufferSize;
     
@@ -101,12 +104,18 @@ public class ProcessBufferProcessor implements EventHandler<LogMessageEvent> {
         LOG.debug("Finished processing message. Writing to output buffer.");
         
         this.buffer.add(msg);
+        
+        long now = System.currentTimeMillis();
 
-        // TODO add time limit as well
-        while (this.buffer.size()>=this.bufferSize) {
+        if (this.lastBufferFlushMillis==0) {
+            lastBufferFlushMillis = now;
+        }
+
+        while (this.buffer.size()>=this.bufferSize || lastBufferFlushMillis+BUFFER_FLUSH_PERIOD<now) {
             try {
                ((OutputBuffer) server.getOutputBuffer()).insert(this.buffer);
                this.buffer = new ArrayList<LogMessage>(this.bufferSize);
+               this.lastBufferFlushMillis = System.currentTimeMillis();
                break;
             } catch (BufferOutOfCapacityException e) {
                 LOG.debug("OutputBuffer out of capacity. Trying again in 250ms.");
