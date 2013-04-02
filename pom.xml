@@ -178,7 +178,7 @@
         <dependency>
             <groupId>com.sonian</groupId>
             <artifactId>elasticsearch-zookeeper</artifactId>
-            <version>0.20.0</version>
+            <version>0.20.0ok1</version>
         </dependency>
     </dependencies>
 
