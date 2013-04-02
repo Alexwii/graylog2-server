@@ -175,6 +175,11 @@
             <artifactId>high-scale-lib</artifactId>
             <version>1.1.4</version>
         </dependency>
+        <dependency>
+            <groupId>com.sonian</groupId>
+            <artifactId>elasticsearch-zookeeper</artifactId>
+            <version>0.20.0</version>
+        </dependency>
     </dependencies>
 
     <build>
