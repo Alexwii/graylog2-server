@@ -128,8 +128,10 @@ public class GELFUDPBlockingInput implements MessageInput {
                                     }
                                 } catch (IOException e) {
                                     LOG.error("Could not recv GELF UDP data to address " + socketAddress, e);
+                                } catch (RuntimeException e) {
+                                    LOG.error("Cannot process GELF UDP data packet to address " + socketAddress, e);
                                 } catch (BufferOutOfCapacityException e) {
-                                    LOG.error("Process Buffer is out of capacity Syslog UDP data to address " + socketAddress, e);
+                                    LOG.error("Process Buffer is out of capacity GELF UDP data to address " + socketAddress, e);
                                 }
                             }
                         } catch (Throwable e) {
